@@ -1,0 +1,4 @@
+module SameBoyCore {
+    umbrella header "SameBoyCore.h"
+    export *
+}

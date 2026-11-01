@@ -1,0 +1,17 @@
+# Game data must never be committed
+*.gb
+*.gbc
+*.sav
+*.state
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.swiftpm/
+.build/
+
+# IDE / OS
+.idea/
+.DS_Store
