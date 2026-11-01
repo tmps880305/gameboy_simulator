@@ -30,6 +30,7 @@
 		EBD43428C21ED3739C699DF1 /* SameBoyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 69BCB6FFCAA87858AD15FFAE /* SameBoyCore */; };
 		F5F28C72636FA70BEAF68A2C /* SaveStatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E65944740418B648D1427F51 /* SaveStatesView.swift */; };
 		F9F04DB607BC6C849ACD56B1 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3997A8DF2D98FF94EEF05A37 /* AppState.swift */; };
+		A1C0FFEE0000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000000002 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,7 +49,7 @@
 		A23AAC397C820AE386CD36E2 /* GameSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSession.swift; sourceTree = "<group>"; };
 		B1B0CFC76405CB610F337E8F /* AudioOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutput.swift; sourceTree = "<group>"; };
 		B9A8E2C16E343593744031B8 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
-		C00C040DD3E6F224A9DD63AE /* GBEmu.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GBEmu.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C00C040DD3E6F224A9DD63AE /* GBEmu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GBEmu.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD3D2686A3B2F1EC9F8B0E32 /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = text; path = Shaders.metal; sourceTree = "<group>"; };
 		D6522AF8A379C48712A5C43C /* EmulationLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulationLoop.swift; sourceTree = "<group>"; };
 		D84208FCED73C67CBD2666C3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -57,6 +58,7 @@
 		E8D260E75EEC204AC493F934 /* ButtonState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonState.swift; sourceTree = "<group>"; };
 		EB4D27B25AEA2DA1F6EE3181 /* SpeedController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedController.swift; sourceTree = "<group>"; };
 		F9E9CF63E674A31D2D2F7CF2 /* ScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenView.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000000002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -84,6 +86,7 @@
 		0FEDF826C8DEF6769E51ECAE /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				A1C0FFEE0000000000000002 /* Assets.xcassets */,
 				9E00568695D823B6C5453E95 /* BootROMs */,
 			);
 			path = Resources;
@@ -230,7 +233,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					E8F91AFDE88B3F0CB87ADA6C = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -264,6 +266,7 @@
 			files = (
 				B10BFB7FAC8FBA647D5AFBE4 /* Shaders.metal in Resources */,
 				8D5999753186A335AB2B63C1 /* cgb_boot.bin in Resources */,
+				A1C0FFEE0000000000000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,38 +364,46 @@
 		8AFF0A81DAE5F49A90D64713 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = BY2EM329HZ;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = GBEmu/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.jywang.GBEmu;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jw.GBEmu;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
 		9779BAB2BA5CDF42B55A537E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = BY2EM329HZ;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = GBEmu/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.jywang.GBEmu;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jw.GBEmu;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
