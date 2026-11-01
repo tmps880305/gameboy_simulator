@@ -11,6 +11,7 @@ final class AppSettings {
         static let audioCategory = "audioCategory"
         static let buttonOpacity = "buttonOpacity"
         static let hideTouchControlsWithController = "hideTouchControlsWithController"
+        static let touchControlStyle = "touchControlStyle"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -33,6 +34,9 @@ final class AppSettings {
     var hideTouchControlsWithController: Bool {
         didSet { defaults.set(hideTouchControlsWithController, forKey: Key.hideTouchControlsWithController) }
     }
+    var touchControlStyle: TouchControlStyle {
+        didSet { defaults.set(touchControlStyle.rawValue, forKey: Key.touchControlStyle) }
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -43,6 +47,7 @@ final class AppSettings {
             Key.audioCategory: AudioCategoryOption.ambient.rawValue,
             Key.buttonOpacity: 0.6,
             Key.hideTouchControlsWithController: true,
+            Key.touchControlStyle: TouchControlStyle.standard.rawValue,
         ])
         holdSpeed = SpeedMode(encoded: Int32(defaults.integer(forKey: Key.holdSpeed)))
         muteWhileFast = defaults.bool(forKey: Key.muteWhileFast)
@@ -50,6 +55,7 @@ final class AppSettings {
         audioCategory = AudioCategoryOption(rawValue: defaults.string(forKey: Key.audioCategory) ?? "") ?? .ambient
         buttonOpacity = defaults.double(forKey: Key.buttonOpacity)
         hideTouchControlsWithController = defaults.bool(forKey: Key.hideTouchControlsWithController)
+        touchControlStyle = TouchControlStyle(rawValue: defaults.string(forKey: Key.touchControlStyle) ?? "") ?? .standard
     }
 }
 

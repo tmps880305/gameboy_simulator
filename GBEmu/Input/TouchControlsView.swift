@@ -1,10 +1,29 @@
 import SwiftUI
 import UIKit
 
+/// Arrangement of the on-screen buttons.
+enum TouchControlStyle: String, CaseIterable, Identifiable {
+    /// D-pad on the left, A/B on the right, like the original hardware.
+    case standard
+    /// Everything reachable with the right thumb: A/B side by side up top,
+    /// a smaller D-pad in the bottom-right corner.
+    case oneHanded
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .standard: "標準"
+        case .oneHanded: "單手模式"
+        }
+    }
+}
+
 /// SwiftUI wrapper around `TouchControlsView`.
 struct TouchControls: UIViewRepresentable {
     let buttons: ButtonState
     var layout: TouchControlsView.Layout
+    var style: TouchControlStyle
     var opacity: Double
     var hapticsEnabled: Bool
     var onHoldFastChanged: (Bool) -> Void
@@ -16,6 +35,7 @@ struct TouchControls: UIViewRepresentable {
 
     func updateUIView(_ view: TouchControlsView, context: Context) {
         view.layout = layout
+        view.style = style
         view.controlOpacity = opacity
         view.hapticsEnabled = hapticsEnabled
         view.onHoldFastChanged = onHoldFastChanged
@@ -49,6 +69,9 @@ final class TouchControlsView: UIView {
 
     var layout: Layout = .portrait {
         didSet { if layout != oldValue { setNeedsLayout() } }
+    }
+    var style: TouchControlStyle = .standard {
+        didSet { if style != oldValue { setNeedsLayout() } }
     }
     var controlOpacity: Double = 0.6 {
         didSet { updateAppearance() }
@@ -104,9 +127,11 @@ final class TouchControlsView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        switch layout {
-        case .portrait: layoutPortrait()
-        case .landscape: layoutLandscape()
+        switch (layout, style) {
+        case (.portrait, .standard): layoutPortrait()
+        case (.landscape, .standard): layoutLandscape()
+        case (.portrait, .oneHanded): layoutPortraitOneHanded()
+        case (.landscape, .oneHanded): layoutLandscapeOneHanded()
         }
     }
 
@@ -144,6 +169,62 @@ final class TouchControlsView: UIView {
         toggleFastView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.minY), size: pillSize)
         selectView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.maxY - pillSize.height), size: pillSize)
         startView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.maxY - pillSize.height), size: pillSize)
+    }
+
+    private func layoutPortraitOneHanded() {
+        let b = bounds.inset(by: UIEdgeInsets(top: 8, left: 16, bottom: max(safeAreaInsets.bottom, 12), right: 16))
+        let pillSize = CGSize(width: 76, height: 28)
+
+        holdFastView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.minY), size: pillSize)
+        toggleFastView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.minY), size: pillSize)
+
+        let standardDpad = min(b.width * 0.42, b.height * 0.62, 180)
+        let cluster = CGRect(x: b.minX + pillSize.width + 16, y: b.minY + pillSize.height + 12,
+                             width: b.width - pillSize.width - 16, height: b.height - pillSize.height - 12)
+        layoutOneHandedCluster(in: cluster, standardDpad: standardDpad)
+
+        // Start/Select stacked just left of the D-pad, within reach of the thumb
+        // but clear of the D-pad's touch slop.
+        let startSelectX = max(b.minX, dpadView.frame.minX - 32 - pillSize.width)
+        startView.frame = CGRect(origin: CGPoint(x: startSelectX, y: b.maxY - pillSize.height), size: pillSize)
+        selectView.frame = CGRect(origin: CGPoint(x: startSelectX, y: startView.frame.minY - 12 - pillSize.height), size: pillSize)
+    }
+
+    private func layoutLandscapeOneHanded() {
+        let b = bounds.inset(by: UIEdgeInsets(top: 12, left: max(safeAreaInsets.left, 16), bottom: max(safeAreaInsets.bottom, 12), right: max(safeAreaInsets.right, 16)))
+        let screenWidth = bounds.height * 10 / 9
+        let columnWidth = max((bounds.width - screenWidth) / 2 - b.minX, 120)
+        let pillSize = CGSize(width: min(76, columnWidth - 8), height: 28)
+
+        holdFastView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.minY), size: pillSize)
+        toggleFastView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.minY), size: pillSize)
+        startView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.maxY - pillSize.height), size: pillSize)
+        selectView.frame = CGRect(origin: CGPoint(x: b.minX, y: startView.frame.minY - 12 - pillSize.height), size: pillSize)
+
+        let standardDpad = min(columnWidth - 8, b.height * 0.5, 170)
+        let cluster = CGRect(x: b.maxX - columnWidth, y: b.minY + pillSize.height + 12,
+                             width: columnWidth, height: b.height - pillSize.height - 12)
+        layoutOneHandedCluster(in: cluster, standardDpad: standardDpad)
+    }
+
+    /// One-handed cluster: a smaller D-pad in the bottom-right corner of
+    /// `region`, with B and A side by side just above it.
+    private func layoutOneHandedCluster(in region: CGRect, standardDpad: CGFloat) {
+        let diameter = min(standardDpad * 0.4, region.width / 2.4, region.height * 0.3)
+        let gap = diameter * 0.3
+        let pairWidth = diameter * 2 + gap
+
+        // Gap between A/B and the D-pad: close enough for the thumb, wide
+        // enough that the D-pad's touch slop doesn't swallow A/B presses.
+        let spacing: CGFloat = 28
+        let dpadSize = max(min(standardDpad * 0.8, region.height - diameter - spacing, region.width), 60)
+        let centerX = min(region.maxX - pairWidth / 2, region.maxX - dpadSize / 2)
+        dpadView.frame = CGRect(x: centerX - dpadSize / 2, y: region.maxY - dpadSize, width: dpadSize, height: dpadSize)
+
+        // A/B sit just above the D-pad rather than at the top of the region.
+        let buttonY = max(region.minY, dpadView.frame.minY - spacing - diameter)
+        aView.frame = CGRect(x: region.maxX - diameter, y: buttonY, width: diameter, height: diameter)
+        bView.frame = CGRect(x: region.maxX - pairWidth, y: buttonY, width: diameter, height: diameter)
     }
 
     /// A and B on a diagonal, like the original hardware.
@@ -223,9 +304,9 @@ final class TouchControlsView: UIView {
     }
 
     private func control(at point: CGPoint) -> Control? {
-        if dpadView.frame.insetBy(dx: -24, dy: -24).contains(point) { return .dpad }
         if aView.hitFrame.contains(point) { return .button(.a) }
         if bView.hitFrame.contains(point) { return .button(.b) }
+        if dpadView.frame.insetBy(dx: -24, dy: -24).contains(point) { return .dpad }
         if selectView.frame.insetBy(dx: -8, dy: -10).contains(point) { return .button(.select) }
         if startView.frame.insetBy(dx: -8, dy: -10).contains(point) { return .button(.start) }
         if holdFastView.frame.insetBy(dx: -8, dy: -10).contains(point) { return .holdFast }

@@ -28,13 +28,22 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("按鍵") {
+                Section {
+                    Picker("按鍵配置", selection: $settings.touchControlStyle) {
+                        ForEach(TouchControlStyle.allCases) { style in
+                            Text(style.label).tag(style)
+                        }
+                    }
                     Toggle("觸覺回饋", isOn: $settings.hapticsEnabled)
                     VStack(alignment: .leading) {
                         Text("按鍵透明度：\(Int(settings.buttonOpacity * 100))%")
                         Slider(value: $settings.buttonOpacity, in: 0.15...1)
                     }
                     Toggle("連接手把時隱藏觸控按鍵", isOn: $settings.hideTouchControlsWithController)
+                } header: {
+                    Text("按鍵")
+                } footer: {
+                    Text("單手模式：A、B 並排於右上方，縮小的十字鍵位於右下方，方便右手拇指單手操作。")
                 }
 
                 Section {

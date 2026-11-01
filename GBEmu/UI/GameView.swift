@@ -151,6 +151,7 @@ private struct GameLayout<MenuContent: View>: View {
         TouchControls(
             buttons: session.buttons,
             layout: layout,
+            style: settings.touchControlStyle,
             opacity: settings.buttonOpacity,
             hapticsEnabled: settings.hapticsEnabled,
             onHoldFastChanged: { session.speed.setHolding($0) },
