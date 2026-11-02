@@ -220,7 +220,7 @@ private struct GameLayout<MenuContent: View>: View {
             style: settings.touchControlStyle,
             opacity: settings.buttonOpacity,
             hapticsEnabled: settings.hapticsEnabled,
-            onHoldFastChanged: { session.speed.setHolding($0) },
+            speedLabel: session.speed.baseMode.label,
             onToggleFast: { session.speed.cycleToggle() }
         )
     }

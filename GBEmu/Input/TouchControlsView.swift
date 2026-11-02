@@ -26,7 +26,8 @@ struct TouchControls: UIViewRepresentable {
     var style: TouchControlStyle
     var opacity: Double
     var hapticsEnabled: Bool
-    var onHoldFastChanged: (Bool) -> Void
+    /// Current speed shown on the fast-forward toggle (e.g. "1x", "4x", "∞").
+    var speedLabel: String
     var onToggleFast: () -> Void
 
     func makeUIView(context: Context) -> TouchControlsView {
@@ -39,7 +40,7 @@ struct TouchControls: UIViewRepresentable {
         view.style = style
         view.controlOpacity = opacity
         view.hapticsEnabled = hapticsEnabled
-        view.onHoldFastChanged = onHoldFastChanged
+        view.speedLabel = speedLabel
         view.onToggleFast = onToggleFast
     }
 
@@ -64,7 +65,6 @@ final class TouchControlsView: UIView {
     private enum Control: Hashable {
         case dpad
         case button(GBButton)
-        case holdFast
         case toggleFast
     }
 
@@ -78,7 +78,9 @@ final class TouchControlsView: UIView {
         didSet { updateAppearance() }
     }
     var hapticsEnabled = true
-    var onHoldFastChanged: ((Bool) -> Void)?
+    var speedLabel = "1x" {
+        didSet { toggleFastView.title = "▶▶ \(speedLabel)" }
+    }
     var onToggleFast: (() -> Void)?
 
     /// Where touches are sent. Changing it releases everything on the old
@@ -97,13 +99,11 @@ final class TouchControlsView: UIView {
     private let bView = RoundButtonView(title: "B")
     private let selectView = PillButtonView(title: "SELECT")
     private let startView = PillButtonView(title: "START")
-    private let holdFastView = PillButtonView(title: "▶▶ 按住")
-    private let toggleFastView = PillButtonView(title: "▶▶ 切換")
+    private let toggleFastView = PillButtonView(title: "▶▶ 1x")
 
     private var touchControls: [UITouch: Control] = [:]
     private var touchButtons: [UITouch: GBButton] = [:]
     private var pressed: GBButton = []
-    private var holdingFast = false
 
     init(buttons: ButtonState) {
         self.buttons = buttons
@@ -123,7 +123,7 @@ final class TouchControlsView: UIView {
     }
 
     private var allControlViews: [UIView] {
-        [dpadView, aView, bView, selectView, startView, holdFastView, toggleFastView]
+        [dpadView, aView, bView, selectView, startView, toggleFastView]
     }
 
     private func updateAppearance() {
@@ -148,7 +148,6 @@ final class TouchControlsView: UIView {
         let b = bounds.inset(by: UIEdgeInsets(top: 8, left: 16, bottom: max(safeAreaInsets.bottom, 12), right: 16))
         let pillSize = CGSize(width: 76, height: 28)
 
-        holdFastView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.minY), size: pillSize)
         toggleFastView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.minY), size: pillSize)
 
         let dpadSize = min(b.width * 0.42, b.height * 0.62, 180)
@@ -174,7 +173,6 @@ final class TouchControlsView: UIView {
         dpadView.frame = CGRect(x: b.minX, y: centerY - dpadSize / 2, width: dpadSize, height: dpadSize)
         layoutFaceButtons(rightEdge: b.maxX, centerY: centerY, size: dpadSize)
 
-        holdFastView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.minY), size: pillSize)
         toggleFastView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.minY), size: pillSize)
         selectView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.maxY - pillSize.height), size: pillSize)
         startView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.maxY - pillSize.height), size: pillSize)
@@ -184,7 +182,6 @@ final class TouchControlsView: UIView {
         let b = bounds.inset(by: UIEdgeInsets(top: 8, left: 16, bottom: max(safeAreaInsets.bottom, 12), right: 16))
         let pillSize = CGSize(width: 76, height: 28)
 
-        holdFastView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.minY), size: pillSize)
         toggleFastView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.minY), size: pillSize)
 
         let standardDpad = min(b.width * 0.42, b.height * 0.62, 180)
@@ -205,7 +202,6 @@ final class TouchControlsView: UIView {
         let columnWidth = max((bounds.width - screenWidth) / 2 - b.minX, 120)
         let pillSize = CGSize(width: min(76, columnWidth - 8), height: 28)
 
-        holdFastView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.minY), size: pillSize)
         toggleFastView.frame = CGRect(origin: CGPoint(x: b.maxX - pillSize.width, y: b.minY), size: pillSize)
         startView.frame = CGRect(origin: CGPoint(x: b.minX, y: b.maxY - pillSize.height), size: pillSize)
         selectView.frame = CGRect(origin: CGPoint(x: b.minX, y: startView.frame.minY - 12 - pillSize.height), size: pillSize)
@@ -305,7 +301,7 @@ final class TouchControlsView: UIView {
                 }
             case .button(let button):
                 touchButtons[touch] = button
-            case .holdFast, .toggleFast:
+            case .toggleFast:
                 break
             }
         }
@@ -318,7 +314,6 @@ final class TouchControlsView: UIView {
         if dpadView.frame.insetBy(dx: -24, dy: -24).contains(point) { return .dpad }
         if selectView.frame.insetBy(dx: -8, dy: -10).contains(point) { return .button(.select) }
         if startView.frame.insetBy(dx: -8, dy: -10).contains(point) { return .button(.start) }
-        if holdFastView.frame.insetBy(dx: -8, dy: -10).contains(point) { return .holdFast }
         if toggleFastView.frame.insetBy(dx: -8, dy: -10).contains(point) { return .toggleFast }
         return nil
     }
@@ -336,14 +331,6 @@ final class TouchControlsView: UIView {
         bView.isPressed = newPressed.contains(.b)
         selectView.isPressed = newPressed.contains(.select)
         startView.isPressed = newPressed.contains(.start)
-
-        let holding = touchControls.values.contains(.holdFast)
-        if holding != holdingFast {
-            holdingFast = holding
-            holdFastView.isPressed = holding
-            if holding { playHaptic() }
-            onHoldFastChanged?(holding)
-        }
     }
 
     private func playHaptic() {
@@ -449,6 +436,11 @@ private final class RoundButtonView: UIView {
         frame.insetBy(dx: -frame.width * 0.15, dy: -frame.height * 0.15)
     }
 
+    var title: String {
+        get { label.text ?? "" }
+        set { label.text = newValue }
+    }
+
     init(title: String) {
         super.init(frame: .zero)
         backgroundColor = controlFill
@@ -476,6 +468,11 @@ private final class PillButtonView: UIView {
 
     var isPressed = false {
         didSet { backgroundColor = isPressed ? controlPressedFill : controlFill }
+    }
+
+    var title: String {
+        get { label.text ?? "" }
+        set { label.text = newValue }
     }
 
     init(title: String) {
