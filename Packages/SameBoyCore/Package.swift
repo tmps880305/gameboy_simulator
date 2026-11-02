@@ -32,7 +32,7 @@ let package = Package(
                 "Core/rewind.c",
                 "Core/graphics",
             ],
-            sources: ["Core"],
+            sources: ["Core", "GBEmuLockstep.c"],
             publicHeadersPath: "include",
             cSettings: featureDefines + [
                 .define("GB_INTERNAL"),

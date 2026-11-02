@@ -13,3 +13,4 @@
 
 #include "../Core/gb.h"
 #include "GBEmuAtomics.h"
+#include "GBEmuLockstep.h"
