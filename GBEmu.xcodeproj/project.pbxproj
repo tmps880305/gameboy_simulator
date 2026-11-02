@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D4E5F60718293A4B03 /* LinkSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B04 /* LinkSetupView.swift */; };
+		A1B2C3D4E5F60718293A4B01 /* PlayerInstance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B02 /* PlayerInstance.swift */; };
 		012081E5012FED4C1DECDA4D /* BatterySaveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C00EF6BDC360FF5E33BB64A /* BatterySaveStore.swift */; };
 		0D89C3622E92A7A7C38DC18E /* TouchControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02F271BB5F3B63890AB8C124 /* TouchControlsView.swift */; };
 		13C93BA4DE0F0D205F855C62 /* ScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E9CF63E674A31D2D2F7CF2 /* ScreenView.swift */; };
@@ -16,7 +18,7 @@
 		6E6388CD0D98907547D00E80 /* GBEmuApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 682A98A1BE0F2478C9E020D8 /* GBEmuApp.swift */; };
 		6E87E53F54B87519A1F0E6CC /* ROMLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55DD16095850A51D200C439E /* ROMLibrary.swift */; };
 		6EA7A30D99356A9FB3E58566 /* FrameBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BA519A76E00750194E42E7D /* FrameBuffer.swift */; };
-		80890F81E17380A021FE0B3F /* GameSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A23AAC397C820AE386CD36E2 /* GameSession.swift */; };
+		80890F81E17380A021FE0B3F /* EmulatorSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A23AAC397C820AE386CD36E2 /* EmulatorSession.swift */; };
 		84AA336FFBE0E8F3CBB3D0A3 /* EmulatorCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE8CB150B455B8F8C0FADAC7 /* EmulatorCore.swift */; };
 		8CA5DE9C64CFBCEB1E95B8D4 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A97BD6E705551C020A7D46 /* RingBuffer.swift */; };
 		8D5999753186A335AB2B63C1 /* cgb_boot.bin in Resources */ = {isa = PBXBuildFile; fileRef = 28C6EE5FBA8E57538142B868 /* cgb_boot.bin */; };
@@ -34,6 +36,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D4E5F60718293A4B04 /* LinkSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkSetupView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B02 /* PlayerInstance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerInstance.swift; sourceTree = "<group>"; };
 		02F271BB5F3B63890AB8C124 /* TouchControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchControlsView.swift; sourceTree = "<group>"; };
 		135415E422CDD90BDD074B8C /* SameBoyCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SameBoyCore; path = Packages/SameBoyCore; sourceTree = SOURCE_ROOT; };
 		1B0FD89A027CCDB362D9C72E /* GameControllerInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameControllerInput.swift; sourceTree = "<group>"; };
@@ -46,7 +50,7 @@
 		68DAB084F1B49E3DE7B74E75 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		8BA519A76E00750194E42E7D /* FrameBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameBuffer.swift; sourceTree = "<group>"; };
 		8C00EF6BDC360FF5E33BB64A /* BatterySaveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatterySaveStore.swift; sourceTree = "<group>"; };
-		A23AAC397C820AE386CD36E2 /* GameSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSession.swift; sourceTree = "<group>"; };
+		A23AAC397C820AE386CD36E2 /* EmulatorSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorSession.swift; sourceTree = "<group>"; };
 		B1B0CFC76405CB610F337E8F /* AudioOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutput.swift; sourceTree = "<group>"; };
 		B9A8E2C16E343593744031B8 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		C00C040DD3E6F224A9DD63AE /* GBEmu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GBEmu.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -96,6 +100,7 @@
 			isa = PBXGroup;
 			children = (
 				D6522AF8A379C48712A5C43C /* EmulationLoop.swift */,
+				A1B2C3D4E5F60718293A4B02 /* PlayerInstance.swift */,
 				DE8CB150B455B8F8C0FADAC7 /* EmulatorCore.swift */,
 				8BA519A76E00750194E42E7D /* FrameBuffer.swift */,
 				EB4D27B25AEA2DA1F6EE3181 /* SpeedController.swift */,
@@ -136,6 +141,7 @@
 			children = (
 				B9A8E2C16E343593744031B8 /* GameView.swift */,
 				68DAB084F1B49E3DE7B74E75 /* LibraryView.swift */,
+				A1B2C3D4E5F60718293A4B04 /* LinkSetupView.swift */,
 				E65944740418B648D1427F51 /* SaveStatesView.swift */,
 				D84208FCED73C67CBD2666C3 /* SettingsView.swift */,
 			);
@@ -146,7 +152,7 @@
 			isa = PBXGroup;
 			children = (
 				3997A8DF2D98FF94EEF05A37 /* AppState.swift */,
-				A23AAC397C820AE386CD36E2 /* GameSession.swift */,
+				A23AAC397C820AE386CD36E2 /* EmulatorSession.swift */,
 				682A98A1BE0F2478C9E020D8 /* GBEmuApp.swift */,
 			);
 			path = App;
@@ -282,11 +288,13 @@
 				012081E5012FED4C1DECDA4D /* BatterySaveStore.swift in Sources */,
 				670DB627B7D74E1BFA36D20B /* ButtonState.swift in Sources */,
 				5BCE3FE103B7975DCCC4CDC5 /* EmulationLoop.swift in Sources */,
+				A1B2C3D4E5F60718293A4B03 /* LinkSetupView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B01 /* PlayerInstance.swift in Sources */,
 				84AA336FFBE0E8F3CBB3D0A3 /* EmulatorCore.swift in Sources */,
 				6EA7A30D99356A9FB3E58566 /* FrameBuffer.swift in Sources */,
 				6E6388CD0D98907547D00E80 /* GBEmuApp.swift in Sources */,
 				A6FF2ADB1F7966288F380B57 /* GameControllerInput.swift in Sources */,
-				80890F81E17380A021FE0B3F /* GameSession.swift in Sources */,
+				80890F81E17380A021FE0B3F /* EmulatorSession.swift in Sources */,
 				349C88A3684A2E6DFC6F7227 /* GameView.swift in Sources */,
 				932D70DFAFD8AB5987E258E1 /* LibraryView.swift in Sources */,
 				6E87E53F54B87519A1F0E6CC /* ROMLibrary.swift in Sources */,

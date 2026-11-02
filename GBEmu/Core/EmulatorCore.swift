@@ -4,8 +4,11 @@ import SameBoyCore
 /// Owns a SameBoy `GB_gameboy_t` instance. This is the only type in the app
 /// that calls the SameBoy C API directly.
 ///
-/// Threading: the instance may be configured on any thread before the
-/// emulation loop starts; after that it must only be touched from the
+/// Every C callback finds its owning instance through `GB_get_user_data`, so
+/// any number of cores can coexist (one per player in link-cable mode).
+///
+/// Threading: the instance may be configured on any thread before it is
+/// handed to the emulation loop; after that it must only be touched from the
 /// emulation thread (use `EmulationLoop.perform`).
 final class EmulatorCore {
     static let screenWidth = 160
@@ -20,8 +23,17 @@ final class EmulatorCore {
     /// Whether APU samples are forwarded to the audio ring buffer.
     var audioEnabled = true
 
+    /// Number of vblanks seen so far; the loop uses it to detect frame ends.
+    private(set) var vblankCount: UInt64 = 0
+
     private var renderingEnabled = true
     private var publishCurrentFrame = true
+
+    /// Link-cable partner. Not retained: the session keeps both cores alive
+    /// and always disconnects before releasing either of them.
+    private unowned(unsafe) var linkPartner: EmulatorCore?
+    /// Bit this core clocked out at the start of the current serial bit.
+    private var linkBit = true
 
     init(bootROM: Data, frameBuffer: FrameBuffer, audioRing: AudioRingBuffer) {
         self.gb = GB_init(GB_alloc(), GB_MODEL_CGB_E)
@@ -35,6 +47,12 @@ final class EmulatorCore {
         GB_set_highpass_filter_mode(gb, GB_HIGHPASS_ACCURATE)
         GB_set_sample_rate(gb, UInt32(Self.sampleRate))
         GB_set_pixels_output(gb, frameBuffer.writeBuffer)
+        // The loop does its own pacing and drives the core with GB_run().
+        // Uncapped turbo without frame skipping keeps SameBoy's internal
+        // timekeeping from sleeping; these are exactly the settings
+        // GB_run_frame() applies temporarily.
+        GB_set_turbo_mode(gb, true, true)
+        GB_set_turbo_cap(gb, 0)
 
         // Pixels are stored as RGBA bytes in memory (MTLPixelFormat.rgba8Unorm).
         GB_set_rgb_encode_callback(gb) { _, r, g, b in
@@ -70,6 +88,7 @@ final class EmulatorCore {
     }
 
     private func handleVBlank(_ type: GB_vblank_type_t) {
+        vblankCount &+= 1
         // REPEAT frames should keep the previous image on screen.
         guard publishCurrentFrame, type != GB_VBLANK_TYPE_REPEAT else { return }
         GB_set_pixels_output(gb, frameBuffer.publish())
@@ -98,15 +117,57 @@ final class EmulatorCore {
         GB_set_key_mask(gb, GB_key_mask_t(rawValue: UInt32(buttons.rawValue)))
     }
 
-    /// Runs the emulator until the next vblank. When `render` is false the PPU
-    /// skips pixel output and the frame is not published (used for fast-forward).
-    func runFrame(render: Bool) {
+    /// Whether frames completed from now on are rendered and published. When
+    /// false the PPU skips pixel output (used for fast-forward).
+    func setRender(_ render: Bool) {
         if render != renderingEnabled {
             GB_set_rendering_disabled(gb, !render)
             renderingEnabled = render
         }
         publishCurrentFrame = render
-        GB_run_frame(gb)
+    }
+
+    /// Runs one short slice (typically a single CPU instruction) and returns
+    /// the emulated time it took, in 8 MHz ticks.
+    func runSlice() -> UInt64 {
+        UInt64(GB_run(gb))
+    }
+
+    // MARK: - Link cable
+
+    /// Connects this core's serial port to `partner` and vice versa.
+    /// Emulation thread only.
+    func connectLink(to partner: EmulatorCore) {
+        linkPartner = partner
+        partner.linkPartner = self
+        linkBit = true
+        partner.linkBit = true
+        for core in [self, partner] {
+            GB_set_serial_transfer_bit_start_callback(core.gb) { gb, bit in
+                EmulatorCore.from(gb)?.linkBit = bit
+            }
+            GB_set_serial_transfer_bit_end_callback(core.gb) { gb in
+                EmulatorCore.from(gb)?.linkBitEnd() ?? true
+            }
+        }
+    }
+
+    /// Unplugs the cable from both ends. Emulation thread only.
+    func disconnectLink() {
+        guard let partner = linkPartner else { return }
+        GB_disconnect_serial(gb)
+        GB_disconnect_serial(partner.gb)
+        partner.linkPartner = nil
+        linkPartner = nil
+    }
+
+    /// Same exchange as SameBoy's Cocoa and libretro front ends: read the
+    /// partner's outgoing bit, shift ours into it, return what we received.
+    private func linkBitEnd() -> Bool {
+        guard let partner = linkPartner else { return true }
+        let received = GB_serial_get_data_bit(partner.gb)
+        GB_serial_set_data_bit(partner.gb, linkBit)
+        return received
     }
 
     // MARK: - Battery save

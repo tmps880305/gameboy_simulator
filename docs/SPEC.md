@@ -36,7 +36,7 @@
 
 ```
 GBEmu/
-├── SPEC.md                     # 本文件
+├── docs/SPEC.md                # 本文件
 ├── GBEmu.xcodeproj
 ├── Packages/
 │   └── SameBoyCore/            # 本地 Swift Package
@@ -47,9 +47,11 @@ GBEmu/
 ├── GBEmu/
 │   ├── App/
 │   │   ├── GBEmuApp.swift
-│   │   └── AppState.swift            # 全域狀態：目前遊戲、設定
+│   │   ├── AppState.swift            # 全域狀態：目前遊戲、設定
+│   │   └── EmulatorSession.swift     # 一局遊戲：1–2 個 PlayerInstance、執行緒、音訊、輸入路由、存檔
 │   ├── Core/
 │   │   ├── EmulatorCore.swift        # 包裝 GB_gameboy_t，唯一直接呼叫 C API 的地方
+│   │   ├── PlayerInstance.swift      # 每台模擬器各自的 core + FrameBuffer + ButtonState + 電池存檔位置
 │   │   ├── EmulationLoop.swift       # 專用執行緒、時序、倍速控制
 │   │   ├── SpeedController.swift     # 倍速模式狀態
 │   │   └── FrameBuffer.swift         # triple buffer，供核心與畫面之間交換影格
@@ -69,7 +71,8 @@ GBEmu/
 │   │   └── SaveStateStore.swift      # 即時存檔欄位
 │   └── UI/
 │       ├── LibraryView.swift
-│       ├── GameView.swift            # 畫面 + 按鍵 + 倍速指示
+│       ├── GameView.swift            # 畫面 + 按鍵 + 倍速指示 + P1/P2 切換
+│       ├── LinkSetupView.swift       # 連線模式：選擇 P2 遊戲與存檔
 │       └── SettingsView.swift
 └── .gitignore                  # 需包含 *.gb *.gbc *.sav *.state
 ```
@@ -79,13 +82,18 @@ GBEmu/
 ## 3. 架構總覽
 
 ```
-          ┌──────────────── Emulation Thread ────────────────┐
- Input ──▶│ ButtonState ─▶ EmulatorCore (SameBoy)            │
-          │                  │ vblank callback ─▶ FrameBuffer │──▶ Main/Render: ScreenView (MTKView)
-          │                  │ sample callback ─▶ RingBuffer  │──▶ Audio Thread: AVAudioSourceNode
-          │ EmulationLoop ◀─ SpeedController                  │
-          └───────────────────────────────────────────────────┘
+ EmulatorSession（主執行緒門面：生命週期、P1/P2 選擇、輸入路由、存檔）
+   │  持有 1–2 個 PlayerInstance = EmulatorCore + FrameBuffer + ButtonState + BatterySlot
+   ▼
+          ┌──────────────────── Emulation Thread ─────────────────────┐
+ Input ──▶│ ButtonState[P1/P2] ─▶ EmulatorCore P1 ◀─ serial bits ─▶ P2 │
+ (只送往  │                         │ vblank callback ─▶ FrameBuffer[Pn]│──▶ Main/Render: ScreenView (每台一個)
+  選中的) │                         │ sample callback ─▶ RingBuffer     │──▶ Audio Thread（只有選中的那台寫入）
+          │ EmulationLoop（鎖步排程）◀─ SpeedController（整個 Session） │
+          └────────────────────────────────────────────────────────────┘
 ```
+
+- 單人模式＝只有一個 PlayerInstance 的 Session，與連線模式共用同一套流程。
 
 **核心原則：模擬執行緒、畫面渲染、音訊播放三者解耦。**
 - 模擬執行緒只負責「依倍速產生影格與音訊樣本」。
@@ -154,7 +162,10 @@ GBEmu/
 
 ### 4.7 Persistence
 - ROM 匯入：SwiftUI `fileImporter`，複製到 `Documents/ROMs/`。
-- 電池存檔：`Documents/Saves/<rom名稱>.sav`。在下列時機寫入：
+- 電池存檔：`Documents/Saves/<rom名稱>.P1.sav` 與 `<rom名稱>.P2.sav`（P2 只在連線模式使用）。
+  - 舊版的 `<rom名稱>.sav` 在沒有 `.P1.sav` 時作為 P1 的讀取來源；之後一律寫入 `.P1.sav`，舊檔不修改、不刪除。
+  - 連線模式下 P2 執行與 P1 相同的 ROM 時用 `.P2.sav`；執行不同 ROM 時用該 ROM 的 P1 存檔。
+  - 在下列時機寫入（每台各自寫入）：
   - App 進入背景
   - 暫停時
   - 遊戲執行中每 30 秒（只有在 SRAM 有變動時，若核心提供可判斷的方式）
@@ -182,11 +193,30 @@ GBEmu/
 | M6 | 倍速 | 按住加速與切換加速都能正常運作；加速時靜音；恢復 1x 後音訊延遲沒有累積 |
 | M7 | 即時存檔 | 4 個欄位可存讀並顯示縮圖 |
 | M8 | 手把支援 + 設定頁 + 橫式版面 | 藍牙手把可完整操作；設定能持久保存 |
+| M9 | 單機雙實例通信（Link Cable） | 見 5.1 |
+
+### 5.1 M9：單機雙實例通信
+
+同一支 iPhone 同時執行兩個核心，以模擬的序列埠互連（用於寶可夢交換）。
+
+- 兩個核心在同一條模擬執行緒上鎖步執行：記錄各自累積的時脈數（`GB_run` 回傳的 8 MHz ticks），每次以 `GB_run` 推進落後的那一台；每台都完成一次 vblank 才算一幀。序列 bit 交換方式與 SameBoy 的 Cocoa／libretro 前端相同（`GB_set_serial_transfer_bit_start/end_callback` + `GB_serial_get/set_data_bit`）。
+- 核心固定設為 `GB_set_turbo_mode(true, true)`、`GB_set_turbo_cap(0)`，避免 SameBoy 內建的 timekeeping 在 `GB_run` 中 sleep（與 `GB_run_frame` 內部的暫時設定相同）。
+- 倍速套用於整個 Session；只有最後一幀輸出畫面。
+- 直式版面上下顯示兩台，橫式只顯示選中的那台；未顯示的那台持續執行。觸控、手把、音訊只跟隨選中的實例，切換時清空 ring buffer。
+- 連線模式下停用即時存檔。App 進入背景時暫停整個 Session 並寫入兩份電池存檔；離開連線模式時先寫入 P2 存檔再釋放其核心。
+- DEBUG 建置可用 `-autolink <ROM名稱>`（搭配 `-autoplay`）直接進入連線模式，並每秒在 console 印出兩台時脈的最大差距。
+
+驗收條件：
+- 單人模式行為與修改前完全一致，舊存檔（`<rom名稱>.sav`）可正常讀取。
+- 連線模式下兩台可在遊戲內成功進入交換畫面並完成一次交換，兩邊存檔正確更新。
+- 連線模式下倍速可正常運作，且通信不中斷。
+- 切換 P1 / P2 時輸入、音訊正確跟著切換。
+- 每個步驟皆以 `xcodebuild` 編譯通過。
 
 ---
 
 ## 6. 非目標（本階段不做）
 
-- 上架 App Store、iCloud 同步、連線對戰（Link Cable）
+- 上架 App Store、iCloud 同步、兩支裝置間的網路連線
 - 金手指、倒帶（rewind）、濾鏡 shader（可列為之後的擴充）
 - GBA 支援

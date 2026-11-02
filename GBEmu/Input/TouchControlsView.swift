@@ -34,6 +34,7 @@ struct TouchControls: UIViewRepresentable {
     }
 
     func updateUIView(_ view: TouchControlsView, context: Context) {
+        view.buttons = buttons
         view.layout = layout
         view.style = style
         view.controlOpacity = opacity
@@ -80,7 +81,15 @@ final class TouchControlsView: UIView {
     var onHoldFastChanged: ((Bool) -> Void)?
     var onToggleFast: (() -> Void)?
 
-    private let buttons: ButtonState
+    /// Where touches are sent. Changing it releases everything on the old
+    /// target and hands the currently held buttons to the new one.
+    var buttons: ButtonState {
+        didSet {
+            guard buttons !== oldValue else { return }
+            oldValue.set([], from: .touch)
+            buttons.set(pressed, from: .touch)
+        }
+    }
     private let haptics = UIImpactFeedbackGenerator(style: .light)
 
     private let dpadView = DPadView()
