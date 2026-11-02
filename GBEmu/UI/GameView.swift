@@ -26,7 +26,9 @@ struct GameView: View {
                 GameLayout(session: session, menu: menu)
             }
         }
-        .statusBarHidden()
+        // Keep the system status bar (time, battery) visible; dark scheme
+        // gives it light content over the black background.
+        .preferredColorScheme(.dark)
         .persistentSystemOverlays(.hidden)
         .onAppear(perform: startSession)
         .onDisappear { session?.stop() }
