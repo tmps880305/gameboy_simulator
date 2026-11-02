@@ -26,7 +26,9 @@ struct GameView: View {
                 GameLayout(session: session, menu: menu)
             }
         }
-        .statusBarHidden()
+        // Keep the system status bar (time, battery) visible; dark scheme
+        // gives it light content over the black background.
+        .preferredColorScheme(.dark)
         .persistentSystemOverlays(.hidden)
         .onAppear(perform: startSession)
         .onDisappear { session?.stop() }
@@ -218,7 +220,7 @@ private struct GameLayout<MenuContent: View>: View {
             style: settings.touchControlStyle,
             opacity: settings.buttonOpacity,
             hapticsEnabled: settings.hapticsEnabled,
-            onHoldFastChanged: { session.speed.setHolding($0) },
+            speedLabel: session.speed.baseMode.label,
             onToggleFast: { session.speed.cycleToggle() }
         )
     }
