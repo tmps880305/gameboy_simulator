@@ -13,13 +13,22 @@ final class GameControllerInput {
     @ObservationIgnored var onHoldFastChanged: ((Bool) -> Void)?
     @ObservationIgnored var onToggleFast: (() -> Void)?
 
-    @ObservationIgnored private let buttons: ButtonState
+    /// Where controller input is sent. Changing it releases everything on
+    /// the old target and re-sends the current pad state to the new one.
+    @ObservationIgnored var target: ButtonState {
+        didSet {
+            guard target !== oldValue else { return }
+            oldValue.set([], from: .controller)
+            target.set(lastMask, from: .controller)
+        }
+    }
+    @ObservationIgnored private var lastMask: GBButton = []
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var holdingFast = false
     @ObservationIgnored private var toggleWasPressed = false
 
-    init(buttons: ButtonState) {
-        self.buttons = buttons
+    init(target: ButtonState) {
+        self.target = target
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: .GCControllerDidConnect, object: nil, queue: .main) { [weak self] note in
             if let controller = note.object as? GCController {
@@ -29,7 +38,8 @@ final class GameControllerInput {
         })
         observers.append(center.addObserver(forName: .GCControllerDidDisconnect, object: nil, queue: .main) { [weak self] _ in
             self?.refreshConnection()
-            self?.buttons.set([], from: .controller)
+            self?.lastMask = []
+            self?.target.set([], from: .controller)
         })
         GCController.controllers().forEach(configure)
         refreshConnection()
@@ -64,7 +74,8 @@ final class GameControllerInput {
         if pad.buttonA.isPressed { mask.insert(.b) }
         if pad.buttonMenu.isPressed { mask.insert(.start) }
         if pad.buttonOptions?.isPressed == true { mask.insert(.select) }
-        buttons.set(mask, from: .controller)
+        lastMask = mask
+        target.set(mask, from: .controller)
 
         let holding = pad.rightShoulder.isPressed || pad.rightTrigger.isPressed
         if holding != holdingFast {

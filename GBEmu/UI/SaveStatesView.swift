@@ -7,7 +7,7 @@ struct SaveStatesView: View {
         case load
     }
 
-    let session: GameSession
+    let session: EmulatorSession
     let mode: Mode
     @Environment(\.dismiss) private var dismiss
     @State private var slots: [SaveStateSlot] = []
