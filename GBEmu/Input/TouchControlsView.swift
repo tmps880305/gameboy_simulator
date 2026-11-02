@@ -373,13 +373,38 @@ private final class DPadView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    /// Maps a point to up to two directions using eight 45° sectors.
+    /// Gap between the horizontal bar (left, center, right) and the up/down
+    /// arms, as a fraction of the pad width. Pushing up/down away from the
+    /// center lets the thumb slide left ↔ right without catching them.
+    private static let gapRatio: CGFloat = 0.06
+    /// Gap between the left and right buttons, which meet at the center.
+    private static let centerGapRatio: CGFloat = 0.03
+
+    private var gap: CGFloat { bounds.width * Self.gapRatio }
+    private var centerGap: CGFloat { bounds.width * Self.centerGapRatio }
+    /// Side of one arm square.
+    private var arm: CGFloat { (bounds.width - gap * 2) / 3 }
+    /// Half-height of the horizontal-only corridor through the center: the
+    /// bar plus half of the gap on each side.
+    private var corridor: CGFloat { arm / 2 + gap / 2 }
+
+    /// Maps a point to up to two directions.
+    ///
+    /// Inside the horizontal corridor only left/right register, split at the
+    /// small center gap (left and right cover the middle). Above or
+    /// below it, eight 45° sectors are measured from the corridor's edge, so
+    /// up/down need a deliberate vertical move while diagonals still work.
     func direction(at point: CGPoint) -> GBButton {
         let dx = point.x - bounds.midX
         let dy = bounds.midY - point.y
-        let radius = bounds.width / 2
-        guard hypot(dx, dy) > radius * 0.18 else { return [] }
-        let sector = Int((atan2(dy, dx) / (.pi / 4)).rounded()) & 7
+        if abs(dy) <= corridor {
+            let deadZone = centerGap / 2
+            if dx > deadZone { return [.right] }
+            if dx < -deadZone { return [.left] }
+            return []
+        }
+        let shiftedY = dy > 0 ? dy - corridor : dy + corridor
+        let sector = Int((atan2(shiftedY, dx) / (.pi / 4)).rounded()) & 7
         switch sector {
         case 0: return [.right]
         case 1: return [.right, .up]
@@ -393,15 +418,18 @@ private final class DPadView: UIView {
     }
 
     override func draw(_ rect: CGRect) {
-        let arm = bounds.width / 3
+        let arm = arm
+        let gap = gap
+        let left = (bounds.width - arm * 3) / 2
+        let barY = bounds.midY - arm / 2
+        // Left and right are wide rectangles that share the middle square.
+        let sideWidth = arm * 1.5 - centerGap / 2
         let arms: [(GBButton, CGRect)] = [
-            (.up, CGRect(x: arm, y: 0, width: arm, height: arm)),
-            (.down, CGRect(x: arm, y: arm * 2, width: arm, height: arm)),
-            (.left, CGRect(x: 0, y: arm, width: arm, height: arm)),
-            (.right, CGRect(x: arm * 2, y: arm, width: arm, height: arm)),
+            (.up, CGRect(x: left + arm, y: barY - gap - arm, width: arm, height: arm)),
+            (.down, CGRect(x: left + arm, y: barY + arm + gap, width: arm, height: arm)),
+            (.left, CGRect(x: left, y: barY, width: sideWidth, height: arm)),
+            (.right, CGRect(x: left + arm * 3 - sideWidth, y: barY, width: sideWidth, height: arm)),
         ]
-        controlFill.setFill()
-        UIBezierPath(rect: CGRect(x: arm, y: arm, width: arm, height: arm)).fill()
         for (button, frame) in arms {
             (pressed.contains(button) ? controlPressedFill : controlFill).setFill()
             UIBezierPath(roundedRect: frame, cornerRadius: arm * 0.15).fill()
