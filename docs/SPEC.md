@@ -200,6 +200,7 @@ GBEmu/
 同一支 iPhone 同時執行兩個核心，以模擬的序列埠互連（用於寶可夢交換）。
 
 - 兩個核心在同一條模擬執行緒上鎖步執行：記錄各自累積的時脈數（`GB_run` 回傳的 8 MHz ticks），每次以 `GB_run` 推進落後的那一台；每台都完成一次 vblank 才算一幀。序列 bit 交換方式與 SameBoy 的 Cocoa／libretro 前端相同（`GB_set_serial_transfer_bit_start/end_callback` + `GB_serial_get/set_data_bit`）。
+- 鎖步迴圈實作在 C（`Packages/SameBoyCore/Sources/SameBoyCore/GBEmuLockstep.c`），Swift 每幀只呼叫一次；逐指令的迴圈若寫在 Swift，Debug（`-Onone`）建置會慢到倍速無法生效。
 - 核心固定設為 `GB_set_turbo_mode(true, true)`、`GB_set_turbo_cap(0)`，避免 SameBoy 內建的 timekeeping 在 `GB_run` 中 sleep（與 `GB_run_frame` 內部的暫時設定相同）。
 - 倍速套用於整個 Session；只有最後一幀輸出畫面。
 - 直式版面上下顯示兩台，橫式只顯示選中的那台；未顯示的那台持續執行。觸控、手把、音訊只跟隨選中的實例，切換時清空 ring buffer。

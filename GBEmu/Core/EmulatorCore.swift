@@ -23,9 +23,6 @@ final class EmulatorCore {
     /// Whether APU samples are forwarded to the audio ring buffer.
     var audioEnabled = true
 
-    /// Number of vblanks seen so far; the loop uses it to detect frame ends.
-    private(set) var vblankCount: UInt64 = 0
-
     private var renderingEnabled = true
     private var publishCurrentFrame = true
 
@@ -88,7 +85,6 @@ final class EmulatorCore {
     }
 
     private func handleVBlank(_ type: GB_vblank_type_t) {
-        vblankCount &+= 1
         // REPEAT frames should keep the previous image on screen.
         guard publishCurrentFrame, type != GB_VBLANK_TYPE_REPEAT else { return }
         GB_set_pixels_output(gb, frameBuffer.publish())
@@ -127,10 +123,18 @@ final class EmulatorCore {
         publishCurrentFrame = render
     }
 
-    /// Runs one short slice (typically a single CPU instruction) and returns
-    /// the emulated time it took, in 8 MHz ticks.
-    func runSlice() -> UInt64 {
-        UInt64(GB_run(gb))
+    /// Runs `cores` (one, or two linked players) in lock step until each has
+    /// completed at least one more frame, always advancing the core with the
+    /// least accumulated time in `cycles` (8 MHz ticks, parallel to `cores`).
+    /// Returns the largest clock gap seen between the cores.
+    static func runFrameLockstep(_ cores: [EmulatorCore], cycles: inout [UInt64]) -> UInt64 {
+        precondition((1...2).contains(cores.count) && cycles.count == cores.count)
+        let gbs: [UnsafeMutablePointer<GB_gameboy_t>?] = cores.map(\.gb)
+        return gbs.withUnsafeBufferPointer { gbs in
+            cycles.withUnsafeMutableBufferPointer { cycles in
+                gbemu_run_frame_lockstep(gbs.baseAddress, cycles.baseAddress, UInt32(gbs.count))
+            }
+        }
     }
 
     // MARK: - Link cable

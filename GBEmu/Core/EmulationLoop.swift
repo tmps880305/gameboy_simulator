@@ -27,6 +27,8 @@ final class EmulationLoop {
 
     // Emulation-thread state (or any thread before `start()`).
     private var players: [PlayerInstance]
+    /// `players.map(\.core)`, cached for the per-frame lock-step call.
+    private var cores: [EmulatorCore]
     /// Emulated time each player has run, in 8 MHz ticks. Parallel to `players`.
     private var cycles: [UInt64]
 
@@ -49,6 +51,7 @@ final class EmulationLoop {
 
     init(player: PlayerInstance, speed: SpeedController, audioRing: AudioRingBuffer) {
         self.players = [player]
+        self.cores = [player.core]
         self.cycles = [0]
         self.speed = speed
         self.audioRing = audioRing
@@ -122,12 +125,14 @@ final class EmulationLoop {
     /// Adds a player and resets the lock-step clocks so all cores start even.
     func attach(_ player: PlayerInstance) {
         players.append(player)
+        cores = players.map(\.core)
         cycles = Array(repeating: 0, count: players.count)
     }
 
     func detach(_ player: Player) {
         guard let index = players.firstIndex(where: { $0.player == player }) else { return }
         players.remove(at: index)
+        cores = players.map(\.core)
         cycles = Array(repeating: 0, count: players.count)
     }
 
@@ -147,39 +152,15 @@ final class EmulationLoop {
     /// Runs every core until each has completed at least one more frame,
     /// always advancing the core that has run the least emulated time.
     private func runFrameStep(render: Bool) {
-        if players.count == 1 {
-            // Fast path, equivalent to GB_run_frame().
-            let core = players[0].core
-            core.setRender(render)
-            let target = core.vblankCount &+ 1
-            while core.vblankCount != target {
-                cycles[0] &+= core.runSlice()
-            }
-            return
-        }
-
         for player in players {
             player.core.setRender(render)
         }
-        let startCounts = players.map(\.core.vblankCount)
-        var pending = players.count
-        var finishedFrame = Array(repeating: false, count: players.count)
-        while pending > 0 {
-            var behind = 0
-            for index in 1..<players.count where cycles[index] < cycles[behind] {
-                behind = index
-            }
-            let core = players[behind].core
-            cycles[behind] &+= core.runSlice()
-            #if DEBUG
-            let skew = (cycles.max() ?? 0) - (cycles.min() ?? 0)
-            if skew > maxSkew { maxSkew = skew }
-            #endif
-            if !finishedFrame[behind], core.vblankCount != startCounts[behind] {
-                finishedFrame[behind] = true
-                pending -= 1
-            }
-        }
+        let skew = EmulatorCore.runFrameLockstep(cores, cycles: &cycles)
+        #if DEBUG
+        if skew > maxSkew { maxSkew = skew }
+        #else
+        _ = skew
+        #endif
         // Keep the counters small; only their difference matters.
         let base = cycles.min() ?? 0
         for index in cycles.indices {
